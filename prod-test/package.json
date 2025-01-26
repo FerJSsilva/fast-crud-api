@@ -1,0 +1,15 @@
+{
+  "name": "prod-test",
+  "version": "0.0.1",
+  "main": "prod-test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@ferjssilva/fast-crud-api": "^0.0.1"
+  }
+}
