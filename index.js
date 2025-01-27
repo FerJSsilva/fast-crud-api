@@ -7,24 +7,17 @@ function transformDocument(doc) {
   const obj = doc.toObject ? doc.toObject() : doc;
   const { _id, __v, ...rest } = obj;
   
-  const transformed = {
+  return {
     id: _id.toString(),
-    ...rest
+    ...Object.entries(rest).reduce((acc, [key, value]) => {
+      if (value && value.constructor && value.constructor.name === 'ObjectId') {
+        acc[key] = value.toString();
+      } else {
+        acc[key] = value;
+      }
+      return acc;
+    }, {})
   };
-
-  // Transform nested documents
-  Object.keys(transformed).forEach(key => {
-    if (Array.isArray(transformed[key])) {
-      transformed[key] = transformed[key].map(item => {
-        if (item && item._id) return transformDocument(item);
-        return item;
-      });
-    } else if (transformed[key] && transformed[key]._id) {
-      transformed[key] = transformDocument(transformed[key]);
-    }
-  });
-  
-  return transformed;
 }
 
 // Build query with filters
