@@ -4,10 +4,16 @@
   "description": "A complete and fast crud API generator",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/**/*.js"
   },
   "keywords": [
-    "crud"
+    "crud",
+    "api",
+    "fastify",
+    "mongodb",
+    "mongoose",
+    "rest"
   ],
   "author": "ferjssilva",
   "license": "ISC",
@@ -16,5 +22,9 @@
   },
   "dependencies": {
     "fastify-plugin": "^5.0.1"
+  },
+  "peerDependencies": {
+    "fastify": ">=4.0.0",
+    "mongoose": ">=6.0.0"
   }
 }

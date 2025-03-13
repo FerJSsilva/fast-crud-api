@@ -5,13 +5,13 @@ A lightweight and flexible REST API generator for Fastify and MongoDB. Create fu
 ## Quick Install
 
 ```bash
-npm install fast-crud-api
+npm install @ferjssilva/fast-crud-api
 ```
 
 ### Dependencies
 
-- fastify
-- mongoose
+- fastify (peer dependency)
+- mongoose (peer dependency)
 - fastify-plugin
 
 ## Features
@@ -34,7 +34,7 @@ npm install fast-crud-api
 ```javascript
 const fastify = require('fastify')()
 const mongoose = require('mongoose')
-const fastCrudApi = require('fast-crud-api')
+const fastCrudApi = require('@ferjssilva/fast-crud-api')
 
 // Your mongoose models
 const User = require('./models/User')
@@ -132,12 +132,31 @@ GET /api/users/:userId/posts
 }
 ```
 
+## Project Structure
+
+The library is organized in a modular structure for better maintainability:
+
+```
+src/
+├── index.js               # Main plugin module
+├── utils/
+│   ├── document.js        # Document transformation utilities
+│   └── query.js           # Query building utilities
+├── middleware/
+│   └── error-handler.js   # Error handling middleware
+├── routes/
+│   ├── crud.js            # CRUD route handlers
+│   └── nested.js          # Nested route handlers
+└── validators/
+    └── method.js          # Method validation utilities
+```
+
 ## Issues and Contact
 
 If you encounter any issues or have suggestions for improvements, please open an issue on our GitHub repository. We appreciate your feedback and contributions!
 
-[Open an Issue](https://github.com/yourusername/fast-crud-api/issues)
+[Open an Issue](https://github.com/ferjssilva/fast-crud-api/issues)
 
 ## License
 
-MIT License - feel free to use this in your projects!
+ISC License
