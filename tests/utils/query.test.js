@@ -109,5 +109,22 @@ describe('Query Utilities', () => {
       expect(queryMock.populate).toHaveBeenCalledWith('author');
       expect(queryMock.populate).toHaveBeenCalledWith('category');
     });
+
+    // Teste adicional para cobrir todos os branches de query.js
+    test('deve funcionar corretamente mesmo sem passar nenhum parâmetro', () => {
+      const modelMock = createModelMock();
+      const queryMock = modelMock.find();
+      
+      // Chamando buildQuery apenas com o modelo, sem filtros nem opções
+      buildQuery(modelMock);
+      
+      // Verificar que os valores padrão foram aplicados corretamente
+      expect(modelMock.find).toHaveBeenCalledWith({});
+      expect(queryMock.sort).toHaveBeenCalledWith({ _id: -1 });
+      expect(queryMock.skip).toHaveBeenCalledWith(0);
+      expect(queryMock.limit).toHaveBeenCalledWith(10);
+      expect(queryMock.or).not.toHaveBeenCalled();
+      expect(queryMock.populate).not.toHaveBeenCalled();
+    });
   });
 });

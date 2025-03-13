@@ -179,4 +179,189 @@ describe('Nested Routes', () => {
       })
     );
   });
+
+  // Testes adicionais para melhorar a cobertura
+
+  test('deve ignorar referenceFields vazios', () => {
+    // Chamar a função com array vazio de campos de referência
+    setupNestedRoutes(fastifyMock, modelMock, prefix, [], options);
+    
+    // Não deve haver rotas registradas
+    expect(fastifyMock.get).not.toHaveBeenCalled();
+  });
+
+  test('deve lidar com valores padrão de options', () => {
+    // Chamar a função sem o parâmetro options
+    setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields);
+    
+    // Deve registrar rotas como habitual
+    expect(fastifyMock.get).toHaveBeenCalledTimes(2);
+    expect(isMethodAllowed).toHaveBeenCalledWith('posts', 'GET', {});
+  });
+
+  test('deve aplicar paginação com valores padrão quando não especificados', async () => {
+    setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
+    
+    // Obter o handler da primeira rota (author)
+    const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
+    
+    // Mock de request sem parâmetros de paginação
+    const request = {
+      params: {
+        refId: 'user-123'
+      },
+      query: {}
+    };
+    
+    // Chamar o handler
+    await authorRouteHandler(request);
+    
+    // Verificar que buildQuery foi chamado com valores padrão
+    expect(buildQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        page: 1,
+        limit: 10
+      })
+    );
+  });
+
+  test('deve lidar com diferentes formatos de campos de populate', async () => {
+    setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
+    
+    // Obter o handler da primeira rota (author)
+    const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
+    
+    // Casos de teste para diferentes formatos de populate
+    const testCases = [
+      { 
+        description: 'populate como string única',
+        populate: 'comments',
+        expected: 'comments'
+      },
+      {
+        description: 'populate como array',
+        populate: ['comments', 'likes'],
+        expected: ['comments', 'likes']
+      }
+    ];
+    
+    for (const testCase of testCases) {
+      // Reset dos mocks
+      jest.clearAllMocks();
+      
+      // Mock de request com o caso de teste
+      const request = {
+        params: {
+          refId: 'user-123'
+        },
+        query: {
+          populate: testCase.populate
+        }
+      };
+      
+      // Chamar o handler
+      await authorRouteHandler(request);
+      
+      // Verificar que buildQuery foi chamado com o campo populate correto
+      expect(buildQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          populate: testCase.expected
+        })
+      );
+    }
+  });
+
+  test('deve processar todos os tipos de parâmetros de query', async () => {
+    setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
+    
+    // Obter o handler da primeira rota (author)
+    const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
+    
+    // Mock de request com múltiplos parâmetros de consulta diferentes
+    const request = {
+      params: {
+        refId: 'user-123'
+      },
+      query: {
+        // Paginação
+        page: '3',
+        limit: '15',
+        
+        // Ordenação
+        sort: '{"updatedAt":-1,"title":1}',
+        
+        // Filtros
+        status: 'active',
+        type: 'article',
+        featured: 'true',
+        
+        // Busca
+        search: 'exemplo',
+        
+        // População
+        populate: ['author', 'comments']
+      }
+    };
+    
+    // Chamar o handler
+    const result = await authorRouteHandler(request);
+    
+    // Verificar que buildQuery foi chamado com todos os parâmetros processados corretamente
+    expect(buildQuery).toHaveBeenCalledWith(
+      modelMock,
+      expect.objectContaining({
+        author: 'cast-user-123',
+        status: 'active',
+        type: 'article',
+        featured: 'true'
+      }),
+      expect.objectContaining({
+        page: 3,
+        limit: 15,
+        sort: { updatedAt: -1, title: 1 },
+        search: 'exemplo',
+        populate: ['author', 'comments']
+      })
+    );
+    
+    // Verificar a estrutura completa do resultado
+    expect(result).toEqual({
+      data: [
+        { id: 'mocked-id', _id: 'post-1', title: 'Post 1' },
+        { id: 'mocked-id', _id: 'post-2', title: 'Post 2' }
+      ],
+      pagination: {
+        total: 2,
+        page: 3,
+        limit: 15,
+        pages: 1
+      }
+    });
+  });
+
+  test('deve lidar com erros na query e propagar para o caller', async () => {
+    // Preparar um erro para ser lançado pela query
+    const queryError = new Error('Erro na consulta');
+    buildQuery.mockReturnValue({
+      exec: jest.fn().mockRejectedValue(queryError)
+    });
+    
+    setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
+    
+    // Obter o handler da rota
+    const routeHandler = fastifyMock.get.mock.calls[0][1];
+    
+    // Mock de request
+    const request = {
+      params: { refId: 'user-123' },
+      query: {}
+    };
+    
+    // Chamar o handler e verificar que o erro é propagado
+    await expect(routeHandler(request)).rejects.toThrow('Erro na consulta');
+  });
 });

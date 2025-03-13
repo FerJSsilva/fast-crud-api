@@ -40,31 +40,37 @@ describe('CRUD Routes', () => {
       delete: jest.fn()
     };
 
-    // Mock do modelo Mongoose
-    modelMock = {
-      collection: {
-        name: 'users'
-      },
-      schema: {
-        paths: {
-          name: { instance: 'String' },
-          email: { instance: 'String' },
-          age: { instance: 'Number' },
-          author: { 
-            options: { ref: 'Author' },
-            cast: jest.fn(id => `cast-${id}`)
-          }
-        }
-      },
-      find: jest.fn(),
-      findById: jest.fn().mockReturnValue({
-        populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue({ _id: 'mocked-id', name: 'Test' })
-      }),
-      findByIdAndUpdate: jest.fn().mockResolvedValue({ _id: 'mocked-id', name: 'Updated' }),
-      findByIdAndDelete: jest.fn().mockResolvedValue({ _id: 'mocked-id' }),
-      countDocuments: jest.fn().mockResolvedValue(10)
+    // Mock da instância do documento salvo
+    const mockDocInstance = {
+      _id: 'new-id',
+      name: 'New Test',
+      save: jest.fn().mockResolvedValue({ _id: 'new-id', name: 'New Test' })
     };
+
+    // Mock do modelo Mongoose como função construtora
+    modelMock = jest.fn().mockImplementation(() => mockDocInstance);
+    
+    // Adicionar propriedades ao modelo
+    modelMock.collection = { name: 'users' };
+    modelMock.schema = {
+      paths: {
+        name: { instance: 'String' },
+        email: { instance: 'String' },
+        age: { instance: 'Number' },
+        author: { 
+          options: { ref: 'Author' },
+          cast: jest.fn(id => `cast-${id}`)
+        }
+      }
+    };
+    modelMock.find = jest.fn();
+    modelMock.findById = jest.fn().mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue({ _id: 'mocked-id', name: 'Test' })
+    });
+    modelMock.findByIdAndUpdate = jest.fn().mockResolvedValue({ _id: 'mocked-id', name: 'Updated' });
+    modelMock.findByIdAndDelete = jest.fn().mockResolvedValue({ _id: 'mocked-id' });
+    modelMock.countDocuments = jest.fn().mockResolvedValue(10);
 
     // Opções padrão
     options = {
@@ -195,5 +201,268 @@ describe('CRUD Routes', () => {
       pages: 1
     });
     expect(transformDocument).toHaveBeenCalled();
+  });
+
+  // Testes adicionais para melhorar a cobertura
+
+  test('deve implementar a lógica da rota GET para obter recurso único', async () => {
+    // Obter o handler da segunda rota GET (recurso único)
+    const getHandler = fastifyMock.get.mock.calls[1][1];
+    
+    // Mock de request e reply para obter um recurso específico
+    const request = {
+      params: { id: 'user-123' },
+      query: { populate: 'posts' }
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    const result = await getHandler(request, reply);
+    
+    // Verificar que findById foi chamado corretamente
+    expect(modelMock.findById).toHaveBeenCalledWith('user-123');
+    expect(modelMock.findById().populate).toHaveBeenCalledWith('posts');
+    expect(transformDocument).toHaveBeenCalled();
+    
+    // Verificar o resultado
+    expect(result).toEqual({ id: 'mocked-id', _id: 'mocked-id', name: 'Test' });
+  });
+
+  test('deve retornar 404 quando o recurso não é encontrado na rota GET :id', async () => {
+    // Configurar findById para retornar null (recurso não encontrado)
+    modelMock.findById.mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue(null)
+    });
+    
+    // Obter o handler da rota GET de recurso único
+    const getHandler = fastifyMock.get.mock.calls[1][1];
+    
+    // Mock de request e reply
+    const request = {
+      params: { id: 'nonexistent-id' },
+      query: {}
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    await getHandler(request, reply);
+    
+    // Verificar que o código 404 foi retornado
+    expect(reply.code).toHaveBeenCalledWith(404);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: 'NotFound',
+      message: 'Resource not found'
+    });
+  });
+
+  test('deve implementar a lógica da rota POST para criar recurso', async () => {
+    // Obter o handler da rota POST
+    const postHandler = fastifyMock.post.mock.calls[0][1];
+    
+    // Mock de request
+    const request = {
+      body: { name: 'New User', email: 'new@example.com' }
+    };
+    
+    // Chamar o handler
+    const result = await postHandler(request);
+    
+    // Verificar que o modelo foi criado e salvo corretamente
+    expect(modelMock).toHaveBeenCalledWith(request.body);
+    expect(modelMock().save).toHaveBeenCalled();
+    expect(transformDocument).toHaveBeenCalled();
+    
+    // Verificar o resultado
+    expect(result).toBeDefined();
+  });
+
+  test('deve lidar com erros durante o salvamento na rota POST', async () => {
+    // Obter o handler da rota POST
+    const postHandler = fastifyMock.post.mock.calls[0][1];
+    
+    // Mock de request
+    const request = {
+      body: { name: 'Error User' }
+    };
+    
+    // Simular erro durante o salvamento
+    const saveError = new Error('Erro ao salvar');
+    const errorInstance = {
+      _id: 'error-id',
+      save: jest.fn().mockRejectedValue(saveError)
+    };
+    
+    // Sobrescrever a implementação do mock apenas para este teste
+    modelMock.mockImplementationOnce(() => errorInstance);
+    
+    // Verificar que a função propaga o erro
+    await expect(postHandler(request)).rejects.toThrow('Erro ao salvar');
+    
+    // Verificar que o método save foi chamado
+    expect(errorInstance.save).toHaveBeenCalled();
+  });
+
+  test('deve implementar a lógica da rota PUT para atualizar recurso', async () => {
+    // Obter o handler da rota PUT
+    const putHandler = fastifyMock.put.mock.calls[0][1];
+    
+    // Mock de request e reply
+    const request = {
+      params: { id: 'user-123' },
+      body: { name: 'Updated Name' }
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    const result = await putHandler(request, reply);
+    
+    // Verificar que findByIdAndUpdate foi chamado corretamente
+    expect(modelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+      'user-123',
+      { name: 'Updated Name' },
+      { new: true, runValidators: true }
+    );
+    expect(transformDocument).toHaveBeenCalled();
+    
+    // Verificar o resultado
+    expect(result).toEqual({ id: 'mocked-id', _id: 'mocked-id', name: 'Updated' });
+  });
+
+  test('deve retornar 404 quando o recurso não é encontrado na rota PUT', async () => {
+    // Configurar findByIdAndUpdate para retornar null (recurso não encontrado)
+    modelMock.findByIdAndUpdate.mockResolvedValue(null);
+    
+    // Obter o handler da rota PUT
+    const putHandler = fastifyMock.put.mock.calls[0][1];
+    
+    // Mock de request e reply
+    const request = {
+      params: { id: 'nonexistent-id' },
+      body: { name: 'Updated Name' }
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    await putHandler(request, reply);
+    
+    // Verificar que o código 404 foi retornado
+    expect(reply.code).toHaveBeenCalledWith(404);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: 'NotFound',
+      message: 'Resource not found'
+    });
+  });
+
+  test('deve implementar a lógica da rota DELETE para remover recurso', async () => {
+    // Obter o handler da rota DELETE
+    const deleteHandler = fastifyMock.delete.mock.calls[0][1];
+    
+    // Mock de request e reply
+    const request = {
+      params: { id: 'user-123' }
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    const result = await deleteHandler(request, reply);
+    
+    // Verificar que findByIdAndDelete foi chamado corretamente
+    expect(modelMock.findByIdAndDelete).toHaveBeenCalledWith('user-123');
+    
+    // Verificar o resultado
+    expect(result).toEqual({ success: true });
+  });
+
+  test('deve retornar 404 quando o recurso não é encontrado na rota DELETE', async () => {
+    // Configurar findByIdAndDelete para retornar null (recurso não encontrado)
+    modelMock.findByIdAndDelete.mockResolvedValue(null);
+    
+    // Obter o handler da rota DELETE
+    const deleteHandler = fastifyMock.delete.mock.calls[0][1];
+    
+    // Mock de request e reply
+    const request = {
+      params: { id: 'nonexistent-id' }
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    await deleteHandler(request, reply);
+    
+    // Verificar que o código 404 foi retornado
+    expect(reply.code).toHaveBeenCalledWith(404);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: 'NotFound',
+      message: 'Resource not found'
+    });
+  });
+
+  test('deve lidar com GET para recurso único sem populate', async () => {
+    // Obter o handler da rota GET de recurso único
+    const getHandler = fastifyMock.get.mock.calls[1][1];
+    
+    // Mock de request e reply sem parâmetro populate
+    const request = {
+      params: { id: 'user-123' },
+      query: {}
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Chamar o handler
+    await getHandler(request, reply);
+    
+    // Verificar que findById foi chamado, mas populate não
+    expect(modelMock.findById).toHaveBeenCalledWith('user-123');
+    expect(modelMock.findById().populate).not.toHaveBeenCalled();
+  });
+
+  test('deve suportar referenceFields vazios', () => {
+    // Reset dos mocks
+    jest.clearAllMocks();
+    
+    // Criar modelo sem campos de referência
+    const noRefModel = { 
+      collection: { name: 'simple' },
+      schema: { 
+        paths: { 
+          name: { instance: 'String' } 
+        } 
+      },
+      find: jest.fn(),
+      findById: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ _id: 'simple-id' })
+      })
+    };
+    
+    // Chamar setupCrudRoutes
+    const result = setupCrudRoutes(fastifyMock, noRefModel, '/api/simple', options);
+    
+    // Verificar que retornou array vazio de reference fields
+    expect(result.referenceFields).toEqual([]);
+    
+    // Verificar que as rotas ainda foram registradas
+    expect(fastifyMock.get).toHaveBeenCalled();
   });
 });

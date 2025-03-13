@@ -173,10 +173,16 @@ npm run test:watch
 ```
 
 Resultados de cobertura de código:
+- Linhas de código: 100%
+- Funções: 100%
+- Branches: 95.77%
+- Statements: 100%
+
+Conseguimos cobertura completa para todos os componentes:
 - Utils: 100% 
 - Validators: 100%
 - Middleware: 100%
-- Routes: ~66% (com testes em expansão)
+- Routes: 100%
 
 ## License
 
