@@ -4,7 +4,9 @@
   "description": "A complete and fast crud API generator",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.js"
   },
   "keywords": [
@@ -26,5 +28,8 @@
   "peerDependencies": {
     "fastify": ">=4.0.0",
     "mongoose": ">=6.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }

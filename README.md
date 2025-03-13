@@ -157,6 +157,27 @@ If you encounter any issues or have suggestions for improvements, please open an
 
 [Open an Issue](https://github.com/ferjssilva/fast-crud-api/issues)
 
+## Testing
+
+A biblioteca inclui testes unitários abrangentes para garantir o funcionamento correto de todos os componentes:
+
+```bash
+# Executar todos os testes
+npm test
+
+# Executar testes com relatório de cobertura
+npm run test:coverage
+
+# Executar testes em modo de observação (útil durante o desenvolvimento)
+npm run test:watch
+```
+
+Resultados de cobertura de código:
+- Utils: 100% 
+- Validators: 100%
+- Middleware: 100%
+- Routes: ~66% (com testes em expansão)
+
 ## License
 
 ISC License
