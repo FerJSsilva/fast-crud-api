@@ -2,19 +2,19 @@ const { isMethodAllowed } = require('../../src/validators/method');
 
 describe('Method Validators', () => {
   describe('isMethodAllowed', () => {
-    test('deve permitir todos os métodos quando allowedMethods for null', () => {
+    test('should allow all methods when allowedMethods is null', () => {
       expect(isMethodAllowed('users', 'GET', null)).toBe(true);
       expect(isMethodAllowed('posts', 'POST', null)).toBe(true);
       expect(isMethodAllowed('comments', 'DELETE', null)).toBe(true);
     });
 
-    test('deve permitir todos os métodos quando allowedMethods estiver vazio', () => {
+    test('should allow all methods when allowedMethods is empty', () => {
       expect(isMethodAllowed('users', 'GET', {})).toBe(true);
       expect(isMethodAllowed('posts', 'POST', {})).toBe(true);
       expect(isMethodAllowed('comments', 'DELETE', {})).toBe(true);
     });
 
-    test('deve permitir todos os métodos quando o modelo não estiver listado em allowedMethods', () => {
+    test('should allow all methods when model is not listed in allowedMethods', () => {
       const allowedMethods = {
         users: ['GET', 'POST']
       };
@@ -24,18 +24,18 @@ describe('Method Validators', () => {
       expect(isMethodAllowed('categories', 'PUT', allowedMethods)).toBe(true);
     });
 
-    test('deve verificar métodos permitidos para um modelo específico', () => {
+    test('should check allowed methods for a specific model', () => {
       const allowedMethods = {
         users: ['GET', 'POST'],
         posts: ['GET']
       };
       
-      // Métodos permitidos
+      // Allowed methods
       expect(isMethodAllowed('users', 'GET', allowedMethods)).toBe(true);
       expect(isMethodAllowed('users', 'POST', allowedMethods)).toBe(true);
       expect(isMethodAllowed('posts', 'GET', allowedMethods)).toBe(true);
       
-      // Métodos não permitidos
+      // Not allowed methods
       expect(isMethodAllowed('users', 'PUT', allowedMethods)).toBe(false);
       expect(isMethodAllowed('users', 'DELETE', allowedMethods)).toBe(false);
       expect(isMethodAllowed('posts', 'POST', allowedMethods)).toBe(false);
@@ -43,42 +43,42 @@ describe('Method Validators', () => {
       expect(isMethodAllowed('posts', 'DELETE', allowedMethods)).toBe(false);
     });
 
-    test('deve ser insensível a maiúsculas/minúsculas ao verificar o nome do modelo', () => {
+    test('should be case insensitive when checking model name', () => {
       const allowedMethods = {
         Users: ['GET', 'POST'],
         POSTS: ['GET']
       };
       
-      // Modelo em minúsculas
+      // Lowercase model
       expect(isMethodAllowed('users', 'GET', allowedMethods)).toBe(true);
       expect(isMethodAllowed('users', 'POST', allowedMethods)).toBe(true);
       expect(isMethodAllowed('users', 'DELETE', allowedMethods)).toBe(false);
       
-      // Modelo com diferentes casos
+      // Mixed case model
       expect(isMethodAllowed('Posts', 'GET', allowedMethods)).toBe(true);
       expect(isMethodAllowed('posts', 'POST', allowedMethods)).toBe(false);
       
-      // Modelo em maiúsculas
+      // Uppercase model
       expect(isMethodAllowed('USERS', 'GET', allowedMethods)).toBe(true);
       expect(isMethodAllowed('POSTS', 'DELETE', allowedMethods)).toBe(false);
     });
 
-    test('deve lidar com valores allowedMethods[key] vazios ou indefinidos', () => {
+    test('should handle empty or undefined allowedMethods[key] values', () => {
       const allowedMethods = {
         users: undefined,
         posts: null,
         comments: []
       };
       
-      // Deve permitir todos os métodos quando o array é indefinido
+      // Should allow all methods when array is undefined
       expect(isMethodAllowed('users', 'GET', allowedMethods)).toBe(true);
       expect(isMethodAllowed('users', 'POST', allowedMethods)).toBe(true);
       
-      // Deve permitir todos os métodos quando o array é null
+      // Should allow all methods when array is null
       expect(isMethodAllowed('posts', 'GET', allowedMethods)).toBe(true);
       expect(isMethodAllowed('posts', 'DELETE', allowedMethods)).toBe(true);
       
-      // Não deve permitir nenhum método quando o array está vazio
+      // Should not allow any methods when array is empty
       expect(isMethodAllowed('comments', 'GET', allowedMethods)).toBe(false);
       expect(isMethodAllowed('comments', 'POST', allowedMethods)).toBe(false);
     });

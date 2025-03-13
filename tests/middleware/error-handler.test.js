@@ -7,13 +7,13 @@ describe('Error Handler Middleware', () => {
     let errorHandler;
 
     beforeEach(() => {
-      // Mock do objeto reply
+      // Mock reply object
       replyMock = {
         code: jest.fn().mockReturnThis(),
         send: jest.fn().mockReturnThis()
       };
 
-      // Mock do objeto fastify
+      // Mock fastify object
       fastifyMock = {
         setErrorHandler: jest.fn(handler => {
           errorHandler = handler;
@@ -23,28 +23,28 @@ describe('Error Handler Middleware', () => {
         }
       };
 
-      // Configurar o tratador de erros
+      // Setup the error handler
       setupErrorHandler(fastifyMock);
     });
 
-    test('deve registrar o tratador de erros no fastify', () => {
+    test('should register the error handler in fastify', () => {
       expect(fastifyMock.setErrorHandler).toHaveBeenCalled();
       expect(typeof errorHandler).toBe('function');
     });
 
-    test('deve registrar o erro no log', async () => {
-      const error = new Error('Erro de teste');
+    test('should log the error', async () => {
+      const error = new Error('Test error');
       await errorHandler(error, {}, replyMock);
       
       expect(fastifyMock.log.error).toHaveBeenCalledWith(error);
     });
 
-    test('deve lidar com erro de validação (ValidationError)', async () => {
+    test('should handle validation error (ValidationError)', async () => {
       const validationError = {
         name: 'ValidationError',
         errors: {
-          field1: { path: 'field1', message: 'Campo obrigatório' },
-          field2: { path: 'field2', message: 'Formato inválido' }
+          field1: { path: 'field1', message: 'Required field' },
+          field2: { path: 'field2', message: 'Invalid format' }
         }
       };
 
@@ -55,13 +55,13 @@ describe('Error Handler Middleware', () => {
         error: 'ValidationError',
         message: 'Invalid data provided',
         details: [
-          { field: 'field1', message: 'Campo obrigatório' },
-          { field: 'field2', message: 'Formato inválido' }
+          { field: 'field1', message: 'Required field' },
+          { field: 'field2', message: 'Invalid format' }
         ]
       });
     });
 
-    test('deve lidar com erro de cast (CastError)', async () => {
+    test('should handle cast error (CastError)', async () => {
       const castError = {
         name: 'CastError'
       };
@@ -75,7 +75,7 @@ describe('Error Handler Middleware', () => {
       });
     });
 
-    test('deve lidar com erro de duplicidade (código 11000)', async () => {
+    test('should handle duplicate error (code 11000)', async () => {
       const duplicateError = {
         code: 11000
       };
@@ -89,8 +89,8 @@ describe('Error Handler Middleware', () => {
       });
     });
 
-    test('deve lidar com erro interno genérico', async () => {
-      const genericError = new Error('Erro interno do servidor');
+    test('should handle generic internal error', async () => {
+      const genericError = new Error('Internal server error');
 
       await errorHandler(genericError, {}, replyMock);
       

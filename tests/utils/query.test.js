@@ -2,7 +2,7 @@ const { buildQuery } = require('../../src/utils/query');
 
 describe('Query Utilities', () => {
   describe('buildQuery', () => {
-    // Mock do modelo do Mongoose
+    // Mock of Mongoose model
     const createModelMock = () => {
       const queryMock = {
         find: jest.fn().mockReturnThis(),
@@ -19,7 +19,7 @@ describe('Query Utilities', () => {
       };
     };
 
-    test('deve aplicar filtros básicos corretamente', () => {
+    test('should apply basic filters correctly', () => {
       const modelMock = createModelMock();
       const filters = { status: 'active', category: 'tech' };
       
@@ -28,7 +28,7 @@ describe('Query Utilities', () => {
       expect(modelMock.find).toHaveBeenCalledWith(filters);
     });
 
-    test('deve aplicar paginação com valores padrão quando não especificados', () => {
+    test('should apply pagination with default values when not specified', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
@@ -38,7 +38,7 @@ describe('Query Utilities', () => {
       expect(queryMock.limit).toHaveBeenCalledWith(10); // default limit = 10
     });
 
-    test('deve aplicar paginação com valores fornecidos', () => {
+    test('should apply pagination with provided values', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
@@ -48,7 +48,7 @@ describe('Query Utilities', () => {
       expect(queryMock.limit).toHaveBeenCalledWith(20);
     });
 
-    test('deve aplicar ordenação corretamente', () => {
+    test('should apply sorting correctly', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       const sortCriteria = { createdAt: -1, name: 1 };
@@ -58,7 +58,7 @@ describe('Query Utilities', () => {
       expect(queryMock.sort).toHaveBeenCalledWith(sortCriteria);
     });
 
-    test('deve aplicar busca de texto quando fornecido termo e campos de busca', () => {
+    test('should apply text search when search term and search fields are provided', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       const searchFields = ['title', 'description'];
@@ -73,7 +73,7 @@ describe('Query Utilities', () => {
       expect(queryMock.or).toHaveBeenCalledWith(expectedSearchConditions);
     });
 
-    test('não deve aplicar busca quando não há termo de busca', () => {
+    test('should not apply search when there is no search term', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
@@ -82,7 +82,7 @@ describe('Query Utilities', () => {
       expect(queryMock.or).not.toHaveBeenCalled();
     });
 
-    test('não deve aplicar busca quando não há campos de busca', () => {
+    test('should not apply search when there are no search fields', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
@@ -91,7 +91,7 @@ describe('Query Utilities', () => {
       expect(queryMock.or).not.toHaveBeenCalled();
     });
 
-    test('deve aplicar população de um único campo', () => {
+    test('should apply population of a single field', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
@@ -100,7 +100,7 @@ describe('Query Utilities', () => {
       expect(queryMock.populate).toHaveBeenCalledWith('author');
     });
 
-    test('deve aplicar população de múltiplos campos', () => {
+    test('should apply population of multiple fields', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
@@ -110,15 +110,15 @@ describe('Query Utilities', () => {
       expect(queryMock.populate).toHaveBeenCalledWith('category');
     });
 
-    // Teste adicional para cobrir todos os branches de query.js
-    test('deve funcionar corretamente mesmo sem passar nenhum parâmetro', () => {
+    // Additional test to cover all branches in query.js
+    test('should work correctly even without passing any parameters', () => {
       const modelMock = createModelMock();
       const queryMock = modelMock.find();
       
-      // Chamando buildQuery apenas com o modelo, sem filtros nem opções
+      // Calling buildQuery with just the model, no filters or options
       buildQuery(modelMock);
       
-      // Verificar que os valores padrão foram aplicados corretamente
+      // Verify that default values were applied correctly
       expect(modelMock.find).toHaveBeenCalledWith({});
       expect(queryMock.sort).toHaveBeenCalledWith({ _id: -1 });
       expect(queryMock.skip).toHaveBeenCalledWith(0);

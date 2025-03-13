@@ -3,7 +3,7 @@ const { isMethodAllowed } = require('../../src/validators/method');
 const { transformDocument } = require('../../src/utils/document');
 const { buildQuery } = require('../../src/utils/query');
 
-// Mock dos módulos externos
+// Mock external modules
 jest.mock('../../src/validators/method');
 jest.mock('../../src/utils/document');
 jest.mock('../../src/utils/query');
@@ -16,19 +16,19 @@ describe('Nested Routes', () => {
   let options;
 
   beforeEach(() => {
-    // Reset de todos os mocks
+    // Reset all mocks
     jest.clearAllMocks();
     
-    // Mock padrão para isMethodAllowed (permitir tudo por padrão)
+    // Default mock for isMethodAllowed (allow everything by default)
     isMethodAllowed.mockReturnValue(true);
     
-    // Mock para transformDocument
+    // Mock for transformDocument
     transformDocument.mockImplementation(doc => ({
       id: 'mocked-id',
       ...doc
     }));
     
-    // Mock para buildQuery
+    // Mock for buildQuery
     buildQuery.mockReturnValue({
       exec: jest.fn().mockResolvedValue([
         { _id: 'post-1', title: 'Post 1' },
@@ -36,12 +36,12 @@ describe('Nested Routes', () => {
       ])
     });
 
-    // Mock do Fastify
+    // Mock Fastify
     fastifyMock = {
       get: jest.fn()
     };
 
-    // Mock do modelo Mongoose
+    // Mock Mongoose model
     modelMock = {
       collection: {
         name: 'posts'
@@ -63,7 +63,7 @@ describe('Nested Routes', () => {
       countDocuments: jest.fn().mockResolvedValue(2)
     };
 
-    // Parâmetros para setupNestedRoutes
+    // Parameters for setupNestedRoutes
     prefix = '/api';
     referenceFields = ['author', 'category'];
     options = {
@@ -73,14 +73,14 @@ describe('Nested Routes', () => {
     };
   });
 
-  test('deve verificar se o método GET é permitido', () => {
+  test('should check if GET method is allowed', () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
     expect(isMethodAllowed).toHaveBeenCalledWith('posts', 'GET', options.methods);
   });
 
-  test('não deve registrar rotas se o método GET não é permitido', () => {
-    // Configurar isMethodAllowed para negar GET
+  test('should not register routes if GET method is not allowed', () => {
+    // Configure isMethodAllowed to deny GET
     isMethodAllowed.mockReturnValue(false);
     
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
@@ -88,24 +88,24 @@ describe('Nested Routes', () => {
     expect(fastifyMock.get).not.toHaveBeenCalled();
   });
 
-  test('deve registrar uma rota aninhada para cada campo de referência', () => {
+  test('should register a nested route for each reference field', () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Deve criar duas rotas (uma para author e outra para category)
+    // Should create two routes (one for author and one for category)
     expect(fastifyMock.get).toHaveBeenCalledTimes(2);
     
-    // Verificar as rotas criadas
+    // Verify created routes
     expect(fastifyMock.get.mock.calls[0][0]).toBe('/api/user/:refId/posts');
     expect(fastifyMock.get.mock.calls[1][0]).toBe('/api/category/:refId/posts');
   });
 
-  test('o handler da rota aninhada deve implementar a lógica correta', async () => {
+  test('should implement correct logic in the nested route handler', async () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Obter o handler da primeira rota (author)
+    // Get the handler for the first route (author)
     const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request para a rota aninhada
+    // Request mock for the nested route
     const request = {
       params: {
         refId: 'user-123'
@@ -119,14 +119,14 @@ describe('Nested Routes', () => {
       }
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await authorRouteHandler(request);
     
-    // Verificar que buildQuery foi chamado com os parâmetros corretos
+    // Verify that buildQuery was called with the correct parameters
     expect(buildQuery).toHaveBeenCalledWith(
       modelMock,
       expect.objectContaining({
-        author: 'cast-user-123', // Verificar que o campo de referência foi aplicado corretamente
+        author: 'cast-user-123', // Verify that the reference field was applied correctly
         status: 'published'
       }),
       expect.objectContaining({
@@ -137,7 +137,7 @@ describe('Nested Routes', () => {
       })
     );
     
-    // Verificar a estrutura do resultado
+    // Verify the result structure
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('pagination');
     expect(result.pagination).toEqual({
@@ -147,17 +147,17 @@ describe('Nested Routes', () => {
       pages: 1
     });
     
-    // Verificar que transformDocument foi chamado para cada item
+    // Verify that transformDocument was called for each item
     expect(transformDocument).toHaveBeenCalledTimes(2);
   });
 
-  test('deve usar os campos de busca do tipo String do modelo', async () => {
+  test('should use String type search fields from the model', async () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Obter o handler da primeira rota (author)
+    // Get the handler for the first route (author)
     const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request com search
+    // Request mock with search
     const request = {
       params: {
         refId: 'user-123'
@@ -167,10 +167,10 @@ describe('Nested Routes', () => {
       }
     };
     
-    // Chamar o handler
+    // Call the handler
     await authorRouteHandler(request);
     
-    // Verificar que buildQuery foi chamado com os campos de busca corretos
+    // Verify that buildQuery was called with the correct search fields
     expect(buildQuery).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -180,32 +180,32 @@ describe('Nested Routes', () => {
     );
   });
 
-  // Testes adicionais para melhorar a cobertura
+  // Additional tests to improve coverage
 
-  test('deve ignorar referenceFields vazios', () => {
-    // Chamar a função com array vazio de campos de referência
+  test('should ignore empty referenceFields', () => {
+    // Call the function with an empty array of reference fields
     setupNestedRoutes(fastifyMock, modelMock, prefix, [], options);
     
-    // Não deve haver rotas registradas
+    // There should be no registered routes
     expect(fastifyMock.get).not.toHaveBeenCalled();
   });
 
-  test('deve lidar com valores padrão de options', () => {
-    // Chamar a função sem o parâmetro options
+  test('should handle default options values', () => {
+    // Call the function without options parameter
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields);
     
-    // Deve registrar rotas como habitual
+    // Should register routes as usual
     expect(fastifyMock.get).toHaveBeenCalledTimes(2);
     expect(isMethodAllowed).toHaveBeenCalledWith('posts', 'GET', {});
   });
 
-  test('deve aplicar paginação com valores padrão quando não especificados', async () => {
+  test('should apply pagination with default values when not specified', async () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Obter o handler da primeira rota (author)
+    // Get the handler for the first route (author)
     const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request sem parâmetros de paginação
+    // Request mock without pagination parameters
     const request = {
       params: {
         refId: 'user-123'
@@ -213,10 +213,10 @@ describe('Nested Routes', () => {
       query: {}
     };
     
-    // Chamar o handler
+    // Call the handler
     await authorRouteHandler(request);
     
-    // Verificar que buildQuery foi chamado com valores padrão
+    // Verify that buildQuery was called with default values
     expect(buildQuery).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -227,31 +227,31 @@ describe('Nested Routes', () => {
     );
   });
 
-  test('deve lidar com diferentes formatos de campos de populate', async () => {
+  test('should handle different formats of populate fields', async () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Obter o handler da primeira rota (author)
+    // Get the handler for the first route (author)
     const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Casos de teste para diferentes formatos de populate
+    // Test cases for different populate formats
     const testCases = [
       { 
-        description: 'populate como string única',
+        description: 'populate as single string',
         populate: 'comments',
         expected: 'comments'
       },
       {
-        description: 'populate como array',
+        description: 'populate as array',
         populate: ['comments', 'likes'],
         expected: ['comments', 'likes']
       }
     ];
     
     for (const testCase of testCases) {
-      // Reset dos mocks
+      // Reset mocks
       jest.clearAllMocks();
       
-      // Mock de request com o caso de teste
+      // Request mock with the test case
       const request = {
         params: {
           refId: 'user-123'
@@ -261,10 +261,10 @@ describe('Nested Routes', () => {
         }
       };
       
-      // Chamar o handler
+      // Call the handler
       await authorRouteHandler(request);
       
-      // Verificar que buildQuery foi chamado com o campo populate correto
+      // Verify that buildQuery was called with the correct populate field
       expect(buildQuery).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -275,42 +275,42 @@ describe('Nested Routes', () => {
     }
   });
 
-  test('deve processar todos os tipos de parâmetros de query', async () => {
+  test('should process all types of query parameters', async () => {
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Obter o handler da primeira rota (author)
+    // Get the handler for the first route (author)
     const authorRouteHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request com múltiplos parâmetros de consulta diferentes
+    // Request mock with multiple different query parameters
     const request = {
       params: {
         refId: 'user-123'
       },
       query: {
-        // Paginação
+        // Pagination
         page: '3',
         limit: '15',
         
-        // Ordenação
+        // Sorting
         sort: '{"updatedAt":-1,"title":1}',
         
-        // Filtros
+        // Filters
         status: 'active',
         type: 'article',
         featured: 'true',
         
-        // Busca
-        search: 'exemplo',
+        // Search
+        search: 'example',
         
-        // População
+        // Population
         populate: ['author', 'comments']
       }
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await authorRouteHandler(request);
     
-    // Verificar que buildQuery foi chamado com todos os parâmetros processados corretamente
+    // Verify that buildQuery was called with all parameters processed correctly
     expect(buildQuery).toHaveBeenCalledWith(
       modelMock,
       expect.objectContaining({
@@ -323,12 +323,12 @@ describe('Nested Routes', () => {
         page: 3,
         limit: 15,
         sort: { updatedAt: -1, title: 1 },
-        search: 'exemplo',
+        search: 'example',
         populate: ['author', 'comments']
       })
     );
     
-    // Verificar a estrutura completa do resultado
+    // Verify the complete result structure
     expect(result).toEqual({
       data: [
         { id: 'mocked-id', _id: 'post-1', title: 'Post 1' },
@@ -343,25 +343,25 @@ describe('Nested Routes', () => {
     });
   });
 
-  test('deve lidar com erros na query e propagar para o caller', async () => {
-    // Preparar um erro para ser lançado pela query
-    const queryError = new Error('Erro na consulta');
+  test('should handle errors in query and propagate to the caller', async () => {
+    // Prepare an error to be thrown by the query
+    const queryError = new Error('Query error');
     buildQuery.mockReturnValue({
       exec: jest.fn().mockRejectedValue(queryError)
     });
     
     setupNestedRoutes(fastifyMock, modelMock, prefix, referenceFields, options);
     
-    // Obter o handler da rota
+    // Get the route handler
     const routeHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request
+    // Request mock
     const request = {
       params: { refId: 'user-123' },
       query: {}
     };
     
-    // Chamar o handler e verificar que o erro é propagado
-    await expect(routeHandler(request)).rejects.toThrow('Erro na consulta');
+    // Call the handler and verify that the error is propagated
+    await expect(routeHandler(request)).rejects.toThrow('Query error');
   });
 });

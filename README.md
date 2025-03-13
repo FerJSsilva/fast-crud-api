@@ -159,26 +159,26 @@ If you encounter any issues or have suggestions for improvements, please open an
 
 ## Testing
 
-A biblioteca inclui testes unitários abrangentes para garantir o funcionamento correto de todos os componentes:
+The library includes comprehensive unit tests to ensure the correct functioning of all components:
 
 ```bash
-# Executar todos os testes
+# Run all tests
 npm test
 
-# Executar testes com relatório de cobertura
+# Run tests with coverage report
 npm run test:coverage
 
-# Executar testes em modo de observação (útil durante o desenvolvimento)
+# Run tests in watch mode (useful during development)
 npm run test:watch
 ```
 
-Resultados de cobertura de código:
-- Linhas de código: 100%
-- Funções: 100%
-- Branches: 95.77%
+Code coverage results:
+- Lines of code: 100%
+- Functions: 100%
+- Branches: 100%
 - Statements: 100%
 
-Conseguimos cobertura completa para todos os componentes:
+We've achieved complete coverage for all components:
 - Utils: 100% 
 - Validators: 100%
 - Middleware: 100%

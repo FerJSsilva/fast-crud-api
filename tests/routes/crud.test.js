@@ -3,7 +3,7 @@ const { isMethodAllowed } = require('../../src/validators/method');
 const { transformDocument } = require('../../src/utils/document');
 const { buildQuery } = require('../../src/utils/query');
 
-// Mock dos módulos externos
+// Mock external modules
 jest.mock('../../src/validators/method');
 jest.mock('../../src/utils/document');
 jest.mock('../../src/utils/query');
@@ -15,24 +15,24 @@ describe('CRUD Routes', () => {
   let returnedValue;
 
   beforeEach(() => {
-    // Reset de todos os mocks
+    // Reset all mocks
     jest.clearAllMocks();
     
-    // Mock padrão para isMethodAllowed (permitir tudo por padrão)
+    // Default mock for isMethodAllowed (allow everything by default)
     isMethodAllowed.mockReturnValue(true);
     
-    // Mock para transformDocument
+    // Mock for transformDocument
     transformDocument.mockImplementation(doc => ({
       id: 'mocked-id',
       ...doc
     }));
     
-    // Mock para buildQuery
+    // Mock for buildQuery
     buildQuery.mockReturnValue({
       exec: jest.fn().mockResolvedValue([{ _id: 'mocked-id', name: 'Test' }])
     });
 
-    // Mock do Fastify
+    // Mock Fastify
     fastifyMock = {
       get: jest.fn(),
       post: jest.fn(),
@@ -40,17 +40,17 @@ describe('CRUD Routes', () => {
       delete: jest.fn()
     };
 
-    // Mock da instância do documento salvo
+    // Mock saved document instance
     const mockDocInstance = {
       _id: 'new-id',
       name: 'New Test',
       save: jest.fn().mockResolvedValue({ _id: 'new-id', name: 'New Test' })
     };
 
-    // Mock do modelo Mongoose como função construtora
+    // Mock Mongoose model as constructor function
     modelMock = jest.fn().mockImplementation(() => mockDocInstance);
     
-    // Adicionar propriedades ao modelo
+    // Add properties to the model
     modelMock.collection = { name: 'users' };
     modelMock.schema = {
       paths: {
@@ -72,82 +72,82 @@ describe('CRUD Routes', () => {
     modelMock.findByIdAndDelete = jest.fn().mockResolvedValue({ _id: 'mocked-id' });
     modelMock.countDocuments = jest.fn().mockResolvedValue(10);
 
-    // Opções padrão
+    // Default options
     options = {
       methods: {
         users: ['GET', 'POST', 'PUT', 'DELETE']
       }
     };
 
-    // Executar a função setupCrudRoutes
+    // Execute the setupCrudRoutes function
     returnedValue = setupCrudRoutes(fastifyMock, modelMock, '/api/users', options);
   });
 
-  test('deve retornar campos de referência', () => {
+  test('should return reference fields', () => {
     expect(returnedValue).toHaveProperty('referenceFields');
     expect(returnedValue.referenceFields).toContain('author');
   });
 
-  test('deve verificar permissões para cada método HTTP', () => {
+  test('should check permissions for each HTTP method', () => {
     expect(isMethodAllowed).toHaveBeenCalledWith('users', 'GET', options.methods);
     expect(isMethodAllowed).toHaveBeenCalledWith('users', 'POST', options.methods);
     expect(isMethodAllowed).toHaveBeenCalledWith('users', 'PUT', options.methods);
     expect(isMethodAllowed).toHaveBeenCalledWith('users', 'DELETE', options.methods);
   });
 
-  test('deve registrar rotas GET quando permitido', () => {
-    // Verificar se as rotas GET foram registradas
+  test('should register GET routes when allowed', () => {
+    // Verify if GET routes were registered
     expect(fastifyMock.get).toHaveBeenCalledTimes(2);
     expect(fastifyMock.get.mock.calls[0][0]).toBe('/api/users');
     expect(fastifyMock.get.mock.calls[1][0]).toBe('/api/users/:id');
   });
 
-  test('deve registrar rota POST quando permitido', () => {
+  test('should register POST route when allowed', () => {
     expect(fastifyMock.post).toHaveBeenCalledTimes(1);
     expect(fastifyMock.post.mock.calls[0][0]).toBe('/api/users');
   });
 
-  test('deve registrar rota PUT quando permitido', () => {
+  test('should register PUT route when allowed', () => {
     expect(fastifyMock.put).toHaveBeenCalledTimes(1);
     expect(fastifyMock.put.mock.calls[0][0]).toBe('/api/users/:id');
   });
 
-  test('deve registrar rota DELETE quando permitido', () => {
+  test('should register DELETE route when allowed', () => {
     expect(fastifyMock.delete).toHaveBeenCalledTimes(1);
     expect(fastifyMock.delete.mock.calls[0][0]).toBe('/api/users/:id');
   });
 
-  test('não deve registrar rotas quando método não permitido', () => {
-    // Reset dos mocks
+  test('should not register routes when method is not allowed', () => {
+    // Reset mocks
     jest.clearAllMocks();
     
-    // Configurar isMethodAllowed para negar todos os métodos
+    // Configure isMethodAllowed to deny all methods
     isMethodAllowed.mockReturnValue(false);
     
-    // Executar a função novamente
+    // Execute the function again
     setupCrudRoutes(fastifyMock, modelMock, '/api/users', options);
     
-    // Verificar que nenhuma rota foi registrada
+    // Verify that no routes were registered
     expect(fastifyMock.get).not.toHaveBeenCalled();
     expect(fastifyMock.post).not.toHaveBeenCalled();
     expect(fastifyMock.put).not.toHaveBeenCalled();
     expect(fastifyMock.delete).not.toHaveBeenCalled();
   });
 
-  test('deve identificar corretamente campos de busca do tipo String', () => {
-    // Reset dos mocks
+  test('should correctly identify String type search fields', () => {
+    // Reset mocks
     jest.clearAllMocks();
     
-    // Executar a função novamente
+    // Execute the function again
     setupCrudRoutes(fastifyMock, modelMock, '/api/users', options);
     
-    // Obter o handler da primeira rota GET (listagem)
+    // Get the handler for the first GET route (listing)
     const listHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Chamar o handler com um mock de request
+    // Call the handler with a request mock
     listHandler({ query: { search: 'test' } });
     
-    // Verificar se buildQuery foi chamado com os campos de busca corretos
+    // Verify if buildQuery was called with the correct search fields
     expect(buildQuery).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -157,11 +157,11 @@ describe('CRUD Routes', () => {
     );
   });
 
-  test('deve implementar a lógica da rota GET para listar recursos', async () => {
-    // Obter o handler da primeira rota GET (listagem)
+  test('should implement GET route logic to list resources', async () => {
+    // Get the handler for the first GET route (listing)
     const listHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request para listagem com vários parâmetros
+    // Request mock for listing with various parameters
     const request = {
       query: {
         page: '2',
@@ -173,10 +173,10 @@ describe('CRUD Routes', () => {
       }
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await listHandler(request);
     
-    // Verificar que buildQuery foi chamado com os parâmetros corretos
+    // Verify that buildQuery was called with the correct parameters
     expect(buildQuery).toHaveBeenCalledWith(
       modelMock,
       expect.objectContaining({
@@ -191,7 +191,7 @@ describe('CRUD Routes', () => {
       })
     );
     
-    // Verificar a estrutura do resultado
+    // Verify the result structure
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('pagination');
     expect(result.pagination).toEqual({
@@ -203,13 +203,13 @@ describe('CRUD Routes', () => {
     expect(transformDocument).toHaveBeenCalled();
   });
 
-  // Testes adicionais para melhorar a cobertura
+  // Additional tests to improve coverage
 
-  test('deve implementar a lógica da rota GET para obter recurso único', async () => {
-    // Obter o handler da segunda rota GET (recurso único)
+  test('should implement GET route logic to retrieve a single resource', async () => {
+    // Get the handler for the second GET route (single resource)
     const getHandler = fastifyMock.get.mock.calls[1][1];
     
-    // Mock de request e reply para obter um recurso específico
+    // Request and reply mock for getting a specific resource
     const request = {
       params: { id: 'user-123' },
       query: { populate: 'posts' }
@@ -219,29 +219,29 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await getHandler(request, reply);
     
-    // Verificar que findById foi chamado corretamente
+    // Verify that findById was called correctly
     expect(modelMock.findById).toHaveBeenCalledWith('user-123');
     expect(modelMock.findById().populate).toHaveBeenCalledWith('posts');
     expect(transformDocument).toHaveBeenCalled();
     
-    // Verificar o resultado
+    // Verify the result
     expect(result).toEqual({ id: 'mocked-id', _id: 'mocked-id', name: 'Test' });
   });
 
-  test('deve retornar 404 quando o recurso não é encontrado na rota GET :id', async () => {
-    // Configurar findById para retornar null (recurso não encontrado)
+  test('should return 404 when resource is not found on GET :id route', async () => {
+    // Configure findById to return null (resource not found)
     modelMock.findById.mockReturnValue({
       populate: jest.fn().mockReturnThis(),
       exec: jest.fn().mockResolvedValue(null)
     });
     
-    // Obter o handler da rota GET de recurso único
+    // Get the handler for the single resource GET route
     const getHandler = fastifyMock.get.mock.calls[1][1];
     
-    // Mock de request e reply
+    // Request and reply mock
     const request = {
       params: { id: 'nonexistent-id' },
       query: {}
@@ -251,10 +251,10 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     await getHandler(request, reply);
     
-    // Verificar que o código 404 foi retornado
+    // Verify that 404 code was returned
     expect(reply.code).toHaveBeenCalledWith(404);
     expect(reply.send).toHaveBeenCalledWith({
       error: 'NotFound',
@@ -262,58 +262,58 @@ describe('CRUD Routes', () => {
     });
   });
 
-  test('deve implementar a lógica da rota POST para criar recurso', async () => {
-    // Obter o handler da rota POST
+  test('should implement POST route logic to create a resource', async () => {
+    // Get the POST route handler
     const postHandler = fastifyMock.post.mock.calls[0][1];
     
-    // Mock de request
+    // Request mock
     const request = {
       body: { name: 'New User', email: 'new@example.com' }
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await postHandler(request);
     
-    // Verificar que o modelo foi criado e salvo corretamente
+    // Verify that the model was created and saved correctly
     expect(modelMock).toHaveBeenCalledWith(request.body);
     expect(modelMock().save).toHaveBeenCalled();
     expect(transformDocument).toHaveBeenCalled();
     
-    // Verificar o resultado
+    // Verify the result
     expect(result).toBeDefined();
   });
 
-  test('deve lidar com erros durante o salvamento na rota POST', async () => {
-    // Obter o handler da rota POST
+  test('should handle errors during saving in POST route', async () => {
+    // Get the POST route handler
     const postHandler = fastifyMock.post.mock.calls[0][1];
     
-    // Mock de request
+    // Request mock
     const request = {
       body: { name: 'Error User' }
     };
     
-    // Simular erro durante o salvamento
-    const saveError = new Error('Erro ao salvar');
+    // Simulate error during saving
+    const saveError = new Error('Error saving');
     const errorInstance = {
       _id: 'error-id',
       save: jest.fn().mockRejectedValue(saveError)
     };
     
-    // Sobrescrever a implementação do mock apenas para este teste
+    // Override the mock implementation only for this test
     modelMock.mockImplementationOnce(() => errorInstance);
     
-    // Verificar que a função propaga o erro
-    await expect(postHandler(request)).rejects.toThrow('Erro ao salvar');
+    // Verify that the function propagates the error
+    await expect(postHandler(request)).rejects.toThrow('Error saving');
     
-    // Verificar que o método save foi chamado
+    // Verify that the save method was called
     expect(errorInstance.save).toHaveBeenCalled();
   });
 
-  test('deve implementar a lógica da rota PUT para atualizar recurso', async () => {
-    // Obter o handler da rota PUT
+  test('should implement PUT route logic to update a resource', async () => {
+    // Get the PUT route handler
     const putHandler = fastifyMock.put.mock.calls[0][1];
     
-    // Mock de request e reply
+    // Request and reply mock
     const request = {
       params: { id: 'user-123' },
       body: { name: 'Updated Name' }
@@ -323,10 +323,10 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await putHandler(request, reply);
     
-    // Verificar que findByIdAndUpdate foi chamado corretamente
+    // Verify that findByIdAndUpdate was called correctly
     expect(modelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'user-123',
       { name: 'Updated Name' },
@@ -334,18 +334,18 @@ describe('CRUD Routes', () => {
     );
     expect(transformDocument).toHaveBeenCalled();
     
-    // Verificar o resultado
+    // Verify the result
     expect(result).toEqual({ id: 'mocked-id', _id: 'mocked-id', name: 'Updated' });
   });
 
-  test('deve retornar 404 quando o recurso não é encontrado na rota PUT', async () => {
-    // Configurar findByIdAndUpdate para retornar null (recurso não encontrado)
+  test('should return 404 when resource is not found on PUT route', async () => {
+    // Configure findByIdAndUpdate to return null (resource not found)
     modelMock.findByIdAndUpdate.mockResolvedValue(null);
     
-    // Obter o handler da rota PUT
+    // Get the PUT route handler
     const putHandler = fastifyMock.put.mock.calls[0][1];
     
-    // Mock de request e reply
+    // Request and reply mock
     const request = {
       params: { id: 'nonexistent-id' },
       body: { name: 'Updated Name' }
@@ -355,10 +355,10 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     await putHandler(request, reply);
     
-    // Verificar que o código 404 foi retornado
+    // Verify that 404 code was returned
     expect(reply.code).toHaveBeenCalledWith(404);
     expect(reply.send).toHaveBeenCalledWith({
       error: 'NotFound',
@@ -366,11 +366,11 @@ describe('CRUD Routes', () => {
     });
   });
 
-  test('deve implementar a lógica da rota DELETE para remover recurso', async () => {
-    // Obter o handler da rota DELETE
+  test('should implement DELETE route logic to remove a resource', async () => {
+    // Get the DELETE route handler
     const deleteHandler = fastifyMock.delete.mock.calls[0][1];
     
-    // Mock de request e reply
+    // Request and reply mock
     const request = {
       params: { id: 'user-123' }
     };
@@ -379,24 +379,24 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     const result = await deleteHandler(request, reply);
     
-    // Verificar que findByIdAndDelete foi chamado corretamente
+    // Verify that findByIdAndDelete was called correctly
     expect(modelMock.findByIdAndDelete).toHaveBeenCalledWith('user-123');
     
-    // Verificar o resultado
+    // Verify the result
     expect(result).toEqual({ success: true });
   });
 
-  test('deve retornar 404 quando o recurso não é encontrado na rota DELETE', async () => {
-    // Configurar findByIdAndDelete para retornar null (recurso não encontrado)
+  test('should return 404 when resource is not found on DELETE route', async () => {
+    // Configure findByIdAndDelete to return null (resource not found)
     modelMock.findByIdAndDelete.mockResolvedValue(null);
     
-    // Obter o handler da rota DELETE
+    // Get the DELETE route handler
     const deleteHandler = fastifyMock.delete.mock.calls[0][1];
     
-    // Mock de request e reply
+    // Request and reply mock
     const request = {
       params: { id: 'nonexistent-id' }
     };
@@ -405,10 +405,10 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     await deleteHandler(request, reply);
     
-    // Verificar que o código 404 foi retornado
+    // Verify that 404 code was returned
     expect(reply.code).toHaveBeenCalledWith(404);
     expect(reply.send).toHaveBeenCalledWith({
       error: 'NotFound',
@@ -416,11 +416,11 @@ describe('CRUD Routes', () => {
     });
   });
 
-  test('deve lidar com GET para recurso único sem populate', async () => {
-    // Obter o handler da rota GET de recurso único
+  test('should handle GET for single resource without populate', async () => {
+    // Get the single resource GET route handler
     const getHandler = fastifyMock.get.mock.calls[1][1];
     
-    // Mock de request e reply sem parâmetro populate
+    // Request and reply mock without populate parameter
     const request = {
       params: { id: 'user-123' },
       query: {}
@@ -430,19 +430,19 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Chamar o handler
+    // Call the handler
     await getHandler(request, reply);
     
-    // Verificar que findById foi chamado, mas populate não
+    // Verify that findById was called, but populate wasn't
     expect(modelMock.findById).toHaveBeenCalledWith('user-123');
     expect(modelMock.findById().populate).not.toHaveBeenCalled();
   });
 
-  test('deve lidar com populate como array na rota GET de recurso único', async () => {
-    // Obter o handler da segunda rota GET (recurso único)
+  test('should handle populate as array in GET route for single resource', async () => {
+    // Get the second GET route handler (single resource)
     const getHandler = fastifyMock.get.mock.calls[1][1];
     
-    // Mock de request e reply com populate como array
+    // Request and reply mock with populate as array
     const request = {
       params: { id: 'user-123' },
       query: { populate: ['author', 'comments'] }
@@ -452,32 +452,32 @@ describe('CRUD Routes', () => {
       send: jest.fn()
     };
     
-    // Resetar o mock do populate para verificar chamadas múltiplas
+    // Reset the populate mock to verify multiple calls
     const populateMock = jest.fn().mockReturnThis();
     modelMock.findById.mockReturnValue({
       populate: populateMock,
       exec: jest.fn().mockResolvedValue({ _id: 'mocked-id', name: 'Test' })
     });
     
-    // Chamar o handler
+    // Call the handler
     const result = await getHandler(request, reply);
     
-    // Verificar que findById foi chamado corretamente
+    // Verify that findById was called correctly
     expect(modelMock.findById).toHaveBeenCalledWith('user-123');
     
-    // Verificar que populate foi chamado para cada item do array
+    // Verify that populate was called for each item in the array
     expect(populateMock).toHaveBeenCalledWith('author');
     expect(populateMock).toHaveBeenCalledWith('comments');
     
-    // Verificar o resultado
+    // Verify the result
     expect(result).toEqual({ id: 'mocked-id', _id: 'mocked-id', name: 'Test' });
   });
 
-  test('deve suportar referenceFields vazios', () => {
-    // Reset dos mocks
+  test('should support empty referenceFields', () => {
+    // Reset mocks
     jest.clearAllMocks();
     
-    // Criar modelo sem campos de referência
+    // Create model without reference fields
     const noRefModel = { 
       collection: { name: 'simple' },
       schema: { 
@@ -491,32 +491,32 @@ describe('CRUD Routes', () => {
       })
     };
     
-    // Chamar setupCrudRoutes
+    // Call setupCrudRoutes
     const result = setupCrudRoutes(fastifyMock, noRefModel, '/api/simple', options);
     
-    // Verificar que retornou array vazio de reference fields
+    // Verify that it returned an empty array of reference fields
     expect(result.referenceFields).toEqual([]);
     
-    // Verificar que as rotas ainda foram registradas
+    // Verify that routes were still registered
     expect(fastifyMock.get).toHaveBeenCalled();
   });
 
-  test('deve usar valores padrão de paginação e ordenação na rota GET listagem', async () => {
-    // Obter o handler da primeira rota GET (listagem)
+  test('should use default pagination and sorting values in GET listing route', async () => {
+    // Get the first GET route handler (listing)
     const listHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request com query vazia (usando valores padrão)
+    // Request mock with empty query (using default values)
     const request = {
       query: {}
     };
     
-    // Reset do buildQuery para verificar os valores padrão
+    // Reset buildQuery to verify default values
     buildQuery.mockClear();
     
-    // Chamar o handler
+    // Call the handler
     await listHandler(request);
     
-    // Verificar que buildQuery foi chamado com os valores padrão
+    // Verify that buildQuery was called with default values
     expect(buildQuery).toHaveBeenCalledWith(
       modelMock,
       {},
@@ -528,49 +528,49 @@ describe('CRUD Routes', () => {
     );
   });
 
-  test('deve lidar com erros durante a execução da query na rota GET listagem', async () => {
-    // Obter o handler da primeira rota GET (listagem)
+  test('should handle errors during query execution in GET listing route', async () => {
+    // Get the first GET route handler (listing)
     const listHandler = fastifyMock.get.mock.calls[0][1];
     
-    // Mock de request
+    // Request mock
     const request = {
       query: {}
     };
     
-    // Simular erro durante a execução da query
-    const queryError = new Error('Erro na execução da query');
+    // Simulate error during query execution
+    const queryError = new Error('Error executing query');
     buildQuery.mockReturnValue({
       exec: jest.fn().mockRejectedValue(queryError)
     });
     
-    // Verificar que a função propaga o erro
-    await expect(listHandler(request)).rejects.toThrow('Erro na execução da query');
+    // Verify that the function propagates the error
+    await expect(listHandler(request)).rejects.toThrow('Error executing query');
   });
 
-  test('deve lidar com options não fornecido', () => {
-    // Reset dos mocks
+  test('should handle options not provided', () => {
+    // Reset mocks
     jest.clearAllMocks();
     
-    // Chamar setupCrudRoutes sem o parâmetro options
+    // Call setupCrudRoutes without options parameter
     setupCrudRoutes(fastifyMock, modelMock, '/api/users');
     
-    // Verificar que as rotas foram registradas corretamente
-    // mesmo sem o parâmetro options
+    // Verify that routes were registered correctly
+    // even without options parameter
     expect(fastifyMock.get).toHaveBeenCalled();
     expect(fastifyMock.post).toHaveBeenCalled();
     expect(fastifyMock.put).toHaveBeenCalled();
     expect(fastifyMock.delete).toHaveBeenCalled();
   });
 
-  test('deve lidar com methods não fornecido em options', () => {
-    // Reset dos mocks
+  test('should handle methods not provided in options', () => {
+    // Reset mocks
     jest.clearAllMocks();
     
-    // Chamar setupCrudRoutes com options sem methods
+    // Call setupCrudRoutes with options without methods
     setupCrudRoutes(fastifyMock, modelMock, '/api/users', {});
     
-    // Verificar que as rotas foram registradas corretamente
-    // mesmo sem methods definido em options
+    // Verify that routes were registered correctly
+    // even without methods defined in options
     expect(fastifyMock.get).toHaveBeenCalled();
     expect(fastifyMock.post).toHaveBeenCalled();
     expect(fastifyMock.put).toHaveBeenCalled();

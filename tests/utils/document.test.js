@@ -2,11 +2,11 @@ const { transformDocument } = require('../../src/utils/document');
 
 describe('Document Utilities', () => {
   describe('transformDocument', () => {
-    test('deve retornar null quando o documento for null', () => {
+    test('should return null when document is null', () => {
       expect(transformDocument(null)).toBeNull();
     });
 
-    test('deve transformar documento com método toObject', () => {
+    test('should transform document with toObject method', () => {
       const mockDocument = {
         _id: { toString: () => '123abc' },
         __v: 0,
@@ -31,7 +31,7 @@ describe('Document Utilities', () => {
       });
     });
 
-    test('deve transformar objeto plano sem método toObject', () => {
+    test('should transform plain object without toObject method', () => {
       const plainObject = {
         _id: { toString: () => '456def' },
         __v: 0,
@@ -48,7 +48,7 @@ describe('Document Utilities', () => {
       });
     });
 
-    test('deve converter campos ObjectId para string', () => {
+    test('should convert ObjectId fields to string', () => {
       const objectWithObjectId = {
         _id: { toString: () => '789ghi' },
         __v: 0,
