@@ -438,6 +438,41 @@ describe('CRUD Routes', () => {
     expect(modelMock.findById().populate).not.toHaveBeenCalled();
   });
 
+  test('deve lidar com populate como array na rota GET de recurso único', async () => {
+    // Obter o handler da segunda rota GET (recurso único)
+    const getHandler = fastifyMock.get.mock.calls[1][1];
+    
+    // Mock de request e reply com populate como array
+    const request = {
+      params: { id: 'user-123' },
+      query: { populate: ['author', 'comments'] }
+    };
+    const reply = {
+      code: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    
+    // Resetar o mock do populate para verificar chamadas múltiplas
+    const populateMock = jest.fn().mockReturnThis();
+    modelMock.findById.mockReturnValue({
+      populate: populateMock,
+      exec: jest.fn().mockResolvedValue({ _id: 'mocked-id', name: 'Test' })
+    });
+    
+    // Chamar o handler
+    const result = await getHandler(request, reply);
+    
+    // Verificar que findById foi chamado corretamente
+    expect(modelMock.findById).toHaveBeenCalledWith('user-123');
+    
+    // Verificar que populate foi chamado para cada item do array
+    expect(populateMock).toHaveBeenCalledWith('author');
+    expect(populateMock).toHaveBeenCalledWith('comments');
+    
+    // Verificar o resultado
+    expect(result).toEqual({ id: 'mocked-id', _id: 'mocked-id', name: 'Test' });
+  });
+
   test('deve suportar referenceFields vazios', () => {
     // Reset dos mocks
     jest.clearAllMocks();
@@ -464,5 +499,81 @@ describe('CRUD Routes', () => {
     
     // Verificar que as rotas ainda foram registradas
     expect(fastifyMock.get).toHaveBeenCalled();
+  });
+
+  test('deve usar valores padrão de paginação e ordenação na rota GET listagem', async () => {
+    // Obter o handler da primeira rota GET (listagem)
+    const listHandler = fastifyMock.get.mock.calls[0][1];
+    
+    // Mock de request com query vazia (usando valores padrão)
+    const request = {
+      query: {}
+    };
+    
+    // Reset do buildQuery para verificar os valores padrão
+    buildQuery.mockClear();
+    
+    // Chamar o handler
+    await listHandler(request);
+    
+    // Verificar que buildQuery foi chamado com os valores padrão
+    expect(buildQuery).toHaveBeenCalledWith(
+      modelMock,
+      {},
+      expect.objectContaining({
+        page: 1,
+        limit: 10,
+        sort: { _id: -1 } // Ordenação padrão
+      })
+    );
+  });
+
+  test('deve lidar com erros durante a execução da query na rota GET listagem', async () => {
+    // Obter o handler da primeira rota GET (listagem)
+    const listHandler = fastifyMock.get.mock.calls[0][1];
+    
+    // Mock de request
+    const request = {
+      query: {}
+    };
+    
+    // Simular erro durante a execução da query
+    const queryError = new Error('Erro na execução da query');
+    buildQuery.mockReturnValue({
+      exec: jest.fn().mockRejectedValue(queryError)
+    });
+    
+    // Verificar que a função propaga o erro
+    await expect(listHandler(request)).rejects.toThrow('Erro na execução da query');
+  });
+
+  test('deve lidar com options não fornecido', () => {
+    // Reset dos mocks
+    jest.clearAllMocks();
+    
+    // Chamar setupCrudRoutes sem o parâmetro options
+    setupCrudRoutes(fastifyMock, modelMock, '/api/users');
+    
+    // Verificar que as rotas foram registradas corretamente
+    // mesmo sem o parâmetro options
+    expect(fastifyMock.get).toHaveBeenCalled();
+    expect(fastifyMock.post).toHaveBeenCalled();
+    expect(fastifyMock.put).toHaveBeenCalled();
+    expect(fastifyMock.delete).toHaveBeenCalled();
+  });
+
+  test('deve lidar com methods não fornecido em options', () => {
+    // Reset dos mocks
+    jest.clearAllMocks();
+    
+    // Chamar setupCrudRoutes com options sem methods
+    setupCrudRoutes(fastifyMock, modelMock, '/api/users', {});
+    
+    // Verificar que as rotas foram registradas corretamente
+    // mesmo sem methods definido em options
+    expect(fastifyMock.get).toHaveBeenCalled();
+    expect(fastifyMock.post).toHaveBeenCalled();
+    expect(fastifyMock.put).toHaveBeenCalled();
+    expect(fastifyMock.delete).toHaveBeenCalled();
   });
 });
