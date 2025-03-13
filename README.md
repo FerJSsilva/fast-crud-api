@@ -26,6 +26,7 @@ npm install @ferjssilva/fast-crud-api
 - ⚡ MongoDB integration with proper document transformation
 - 🔄 Clean REST API endpoints
 - 🚨 Comprehensive error handling
+- ✅ 100% Test Coverage
 
 ## How to Use
 
