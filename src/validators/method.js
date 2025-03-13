@@ -6,14 +6,14 @@
  * @returns {Boolean} Whether the method is allowed
  */
 function isMethodAllowed(modelName, method, allowedMethods) {
-  if (!allowedMethods) return true;
+  if (!allowedMethods) return false;
   
   // Find the matching key regardless of case
   const key = Object.keys(allowedMethods).find(
     k => k.toLowerCase() === modelName.toLowerCase()
   );
   
-  if (!key || !allowedMethods[key]) return true;
+  if (!key || !allowedMethods[key]) return false;
   return allowedMethods[key].includes(method);
 }
 

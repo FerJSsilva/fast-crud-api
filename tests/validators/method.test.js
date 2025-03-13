@@ -2,26 +2,26 @@ const { isMethodAllowed } = require('../../src/validators/method');
 
 describe('Method Validators', () => {
   describe('isMethodAllowed', () => {
-    test('should allow all methods when allowedMethods is null', () => {
-      expect(isMethodAllowed('users', 'GET', null)).toBe(true);
-      expect(isMethodAllowed('posts', 'POST', null)).toBe(true);
-      expect(isMethodAllowed('comments', 'DELETE', null)).toBe(true);
+    test('should not allow any methods when allowedMethods is null', () => {
+      expect(isMethodAllowed('users', 'GET', null)).toBe(false);
+      expect(isMethodAllowed('posts', 'POST', null)).toBe(false);
+      expect(isMethodAllowed('comments', 'DELETE', null)).toBe(false);
     });
 
-    test('should allow all methods when allowedMethods is empty', () => {
-      expect(isMethodAllowed('users', 'GET', {})).toBe(true);
-      expect(isMethodAllowed('posts', 'POST', {})).toBe(true);
-      expect(isMethodAllowed('comments', 'DELETE', {})).toBe(true);
+    test('should not allow any methods when allowedMethods is empty', () => {
+      expect(isMethodAllowed('users', 'GET', {})).toBe(false);
+      expect(isMethodAllowed('posts', 'POST', {})).toBe(false);
+      expect(isMethodAllowed('comments', 'DELETE', {})).toBe(false);
     });
 
-    test('should allow all methods when model is not listed in allowedMethods', () => {
+    test('should not allow any methods when model is not listed in allowedMethods', () => {
       const allowedMethods = {
         users: ['GET', 'POST']
       };
       
-      expect(isMethodAllowed('posts', 'GET', allowedMethods)).toBe(true);
-      expect(isMethodAllowed('comments', 'POST', allowedMethods)).toBe(true);
-      expect(isMethodAllowed('categories', 'PUT', allowedMethods)).toBe(true);
+      expect(isMethodAllowed('posts', 'GET', allowedMethods)).toBe(false);
+      expect(isMethodAllowed('comments', 'POST', allowedMethods)).toBe(false);
+      expect(isMethodAllowed('categories', 'PUT', allowedMethods)).toBe(false);
     });
 
     test('should check allowed methods for a specific model', () => {
@@ -70,13 +70,13 @@ describe('Method Validators', () => {
         comments: []
       };
       
-      // Should allow all methods when array is undefined
-      expect(isMethodAllowed('users', 'GET', allowedMethods)).toBe(true);
-      expect(isMethodAllowed('users', 'POST', allowedMethods)).toBe(true);
+      // Should not allow any methods when array is undefined
+      expect(isMethodAllowed('users', 'GET', allowedMethods)).toBe(false);
+      expect(isMethodAllowed('users', 'POST', allowedMethods)).toBe(false);
       
-      // Should allow all methods when array is null
-      expect(isMethodAllowed('posts', 'GET', allowedMethods)).toBe(true);
-      expect(isMethodAllowed('posts', 'DELETE', allowedMethods)).toBe(true);
+      // Should not allow any methods when array is null
+      expect(isMethodAllowed('posts', 'GET', allowedMethods)).toBe(false);
+      expect(isMethodAllowed('posts', 'DELETE', allowedMethods)).toBe(false);
       
       // Should not allow any methods when array is empty
       expect(isMethodAllowed('comments', 'GET', allowedMethods)).toBe(false);
